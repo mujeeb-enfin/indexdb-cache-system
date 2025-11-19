@@ -101,7 +101,7 @@ async function example4_customTTL() {
   };
   
   const data = await apiClient.ApiCall(
-    'https://api.example.com/long-lived-data',
+    'https://jsonplaceholder.typicode.com/users',
     options
   );
   
@@ -118,7 +118,7 @@ async function example5_bypassCache() {
   };
   
   const freshData = await apiClient.ApiCall(
-    'https://api.example.com/users',
+    'https://jsonplaceholder.typicode.com/users',
     options
   );
   
@@ -131,11 +131,11 @@ async function example5_bypassCache() {
 
 async function example6_postRequest() {
   // First, get users (will be cached)
-  const users = await apiClient.ApiCall('https://api.example.com/users');
+  const users = await apiClient.ApiCall('https://jsonplaceholder.typicode.com/users');
   console.log('Original users:', users);
   
   // Create a new user - this will invalidate the cache for this URL
-  const newUser = await apiClient.ApiCall('https://api.example.com/users', {
+  const newUser = await apiClient.ApiCall('https://jsonplaceholder.typicode.com/users', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -149,7 +149,7 @@ async function example6_postRequest() {
   console.log('New user created:', newUser);
   
   // Next GET will fetch fresh data from API
-  const updatedUsers = await apiClient.ApiCall('https://api.example.com/users');
+  const updatedUsers = await apiClient.ApiCall('https://jsonplaceholder.typicode.com/users');
   console.log('Updated users list:', updatedUsers);
 }
 
@@ -161,14 +161,14 @@ async function example7_updateRequest() {
   const userId = 123;
   
   // Get user details (cached)
-  const user = await apiClient.ApiCall(`https://api.example.com/users/${userId}`, {
+  const user = await apiClient.ApiCall(`https://jsonplaceholder.typicode.com/users/${userId}`, {
     otherKeys: { userId }
   });
   
   console.log('Original user:', user);
   
   // Update user - invalidates cache for this specific user
-  const updated = await apiClient.ApiCall(`https://api.example.com/users/${userId}`, {
+  const updated = await apiClient.ApiCall(`https://jsonplaceholder.typicode.com/users/${userId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json'
@@ -182,7 +182,7 @@ async function example7_updateRequest() {
   console.log('User updated:', updated);
   
   // Next GET fetches fresh data
-  const freshUser = await apiClient.ApiCall(`https://api.example.com/users/${userId}`, {
+  const freshUser = await apiClient.ApiCall(`https://jsonplaceholder.typicode.com/users/${userId}`, {
     otherKeys: { userId }
   });
   
@@ -197,7 +197,7 @@ async function example8_deleteRequest() {
   const userId = 123;
   
   // Delete user - invalidates all cache for this URL
-  await apiClient.ApiCall(`https://api.example.com/users/${userId}`, {
+  await apiClient.ApiCall(`https://jsonplaceholder.typicode.com/users/${userId}`, {
     method: 'DELETE',
     otherKeys: { userId }
   });
@@ -212,7 +212,7 @@ async function example8_deleteRequest() {
 async function example9_pagination() {
   // Each page is cached separately based on otherKeys
   for (let page = 1; page <= 3; page++) {
-    const data = await apiClient.ApiCall('https://api.example.com/items', {
+    const data = await apiClient.ApiCall('https://jsonplaceholder.typicode.com/items', {
       otherKeys: {
         page,
         limit: 20
@@ -223,7 +223,7 @@ async function example9_pagination() {
   }
   
   // Accessing page 2 again will use cache
-  const cachedPage2 = await apiClient.ApiCall('https://api.example.com/items', {
+  const cachedPage2 = await apiClient.ApiCall('https://jsonplaceholder.typicode.com/items', {
     otherKeys: {
       page: 2,
       limit: 20
@@ -252,11 +252,11 @@ async function example10_searchWithFilters() {
   };
   
   // Cached separately
-  const results1 = await apiClient.ApiCall('https://api.example.com/search', {
+  const results1 = await apiClient.ApiCall('https://jsonplaceholder.typicode.com/search', {
     otherKeys: { filters: filters1 }
   });
   
-  const results2 = await apiClient.ApiCall('https://api.example.com/search', {
+  const results2 = await apiClient.ApiCall('https://jsonplaceholder.typicode.com/search', {
     otherKeys: { filters: filters2 }
   });
   
@@ -270,14 +270,14 @@ async function example10_searchWithFilters() {
 
 async function example11_manualInvalidation() {
   // Get data (cached)
-  await apiClient.ApiCall('https://api.example.com/products');
+  await apiClient.ApiCall('https://jsonplaceholder.typicode.com/products');
   
   // Manually invalidate cache for this URL
-  const invalidatedCount = await apiClient.invalidateCache('https://api.example.com/products');
+  const invalidatedCount = await apiClient.invalidateCache('https://jsonplaceholder.typicode.com/products');
   console.log(`Invalidated ${invalidatedCount} cache entries`);
   
   // Next call will fetch fresh data
-  await apiClient.ApiCall('https://api.example.com/products');
+  await apiClient.ApiCall('https://jsonplaceholder.typicode.com/products');
 }
 
 // ============================================================================
@@ -286,16 +286,16 @@ async function example11_manualInvalidation() {
 
 async function example12_specificInvalidation() {
   // Cache data for multiple users
-  await apiClient.ApiCall('https://api.example.com/dashboard', {
+  await apiClient.ApiCall('https://jsonplaceholder.typicode.com/dashboard', {
     otherKeys: { userId: 'user123' }
   });
   
-  await apiClient.ApiCall('https://api.example.com/dashboard', {
+  await apiClient.ApiCall('https://jsonplaceholder.typicode.com/dashboard', {
     otherKeys: { userId: 'user456' }
   });
   
   // Invalidate cache only for user123
-  await apiClient.invalidateCache('https://api.example.com/dashboard', {
+  await apiClient.invalidateCache('https://jsonplaceholder.typicode.com/dashboard', {
     userId: 'user123'
   });
   
@@ -308,9 +308,9 @@ async function example12_specificInvalidation() {
 
 async function example13_statistics() {
   // Make some requests
-  await apiClient.ApiCall('https://api.example.com/users');
-  await apiClient.ApiCall('https://api.example.com/users'); // Cache hit
-  await apiClient.ApiCall('https://api.example.com/products');
+  await apiClient.ApiCall('https://jsonplaceholder.typicode.com/users');
+  await apiClient.ApiCall('https://jsonplaceholder.typicode.com/users'); // Cache hit
+  await apiClient.ApiCall('https://jsonplaceholder.typicode.com/products');
   
   // Get statistics
   const stats = apiClient.getStats();
@@ -336,9 +336,9 @@ async function example15_requestDeduplication() {
   // These requests happen simultaneously for the same resource
   // The system will deduplicate them and only make ONE API call
   const [result1, result2, result3] = await Promise.all([
-    apiClient.ApiCall('https://api.example.com/expensive-operation'),
-    apiClient.ApiCall('https://api.example.com/expensive-operation'),
-    apiClient.ApiCall('https://api.example.com/expensive-operation')
+    apiClient.ApiCall('https://jsonplaceholder.typicode.com/expensive-operation'),
+    apiClient.ApiCall('https://jsonplaceholder.typicode.com/expensive-operation'),
+    apiClient.ApiCall('https://jsonplaceholder.typicode.com/expensive-operation')
   ]);
   
   console.log('All three got the same data, but only one API call was made!');
@@ -395,7 +395,7 @@ function useApiData(url, options = {}) {
 
 // React Component Example
 function UsersList() {
-  const { data, loading, error } = useApiData('https://api.example.com/users');
+  const { data, loading, error } = useApiData('https://jsonplaceholder.typicode.com/users');
   
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
@@ -415,7 +415,7 @@ function UsersList() {
 
 async function example17_errorHandling() {
   try {
-    const data = await apiClient.ApiCall('https://api.example.com/might-fail');
+    const data = await apiClient.ApiCall('https://jsonplaceholder.typicode.com/might-fail');
     console.log('Success:', data);
   } catch (error) {
     if (error.message.includes('Failed to fetch')) {
@@ -460,14 +460,14 @@ class EcommerceAPI {
   
   // Get products with caching
   async getProducts(filters = {}) {
-    return this.client.ApiCall('https://api.shop.com/products', {
+    return this.client.ApiCall('https://jsonplaceholder.typicode.com/products', {
       otherKeys: { filters }
     });
   }
   
   // Get product details (longer cache)
   async getProductDetails(productId) {
-    return this.client.ApiCall(`https://api.shop.com/products/${productId}`, {
+    return this.client.ApiCall(`https://jsonplaceholder.typicode.com/products/${productId}`, {
       ttl: 15 * 60 * 1000, // Cache for 15 minutes
       otherKeys: { productId }
     });
@@ -475,7 +475,7 @@ class EcommerceAPI {
   
   // Add to cart (invalidates cart cache)
   async addToCart(productId, quantity) {
-    return this.client.ApiCall('https://api.shop.com/cart', {
+    return this.client.ApiCall('https://jsonplaceholder.typicode.com/cart', {
       method: 'POST',
       body: { productId, quantity },
       otherKeys: { action: 'add' }
@@ -484,14 +484,14 @@ class EcommerceAPI {
   
   // Get cart (frequently updated, shorter cache)
   async getCart() {
-    return this.client.ApiCall('https://api.shop.com/cart', {
+    return this.client.ApiCall('https://jsonplaceholder.typicode.com/cart', {
       ttl: 30 * 1000 // Only 30 seconds cache
     });
   }
   
   // Update product (invalidates product cache)
   async updateProduct(productId, updates) {
-    return this.client.ApiCall(`https://api.shop.com/products/${productId}`, {
+    return this.client.ApiCall(`https://jsonplaceholder.typicode.com/products/${productId}`, {
       method: 'PUT',
       body: updates,
       otherKeys: { productId }
@@ -500,7 +500,7 @@ class EcommerceAPI {
   
   // Search products
   async searchProducts(query, page = 1) {
-    return this.client.ApiCall('https://api.shop.com/search', {
+    return this.client.ApiCall('https://jsonplaceholder.typicode.com/search', {
       otherKeys: {
         query,
         page
@@ -510,7 +510,7 @@ class EcommerceAPI {
   
   // Get fresh data bypassing cache
   async getRealtimeInventory(productId) {
-    return this.client.ApiCall(`https://api.shop.com/inventory/${productId}`, {
+    return this.client.ApiCall(`https://jsonplaceholder.typicode.com/inventory/${productId}`, {
       bypassCache: true // Always fresh data for inventory
     });
   }
