@@ -1,6 +1,6 @@
 /**
  * Enterprise-Grade IndexedDB API Caching System
- * 
+ * mr-innovations.com
  * Features:
  * - Automatic cache expiry with configurable TTL
  * - Smart cache invalidation for non-GET requests
