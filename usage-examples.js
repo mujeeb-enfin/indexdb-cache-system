@@ -1,7 +1,7 @@
 /**
  * INDEXEDDB CACHING SYSTEM - USAGE GUIDE
  * ========================================
- * 
+ * MR-INNOVATIONS.COM
  * A complete guide on how to use the enterprise-grade IndexedDB caching system
  */
 

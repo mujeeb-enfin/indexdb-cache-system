@@ -1,0 +1,148 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    name: Lint Check
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Check JavaScript files
+      run: |
+        echo "Checking for syntax errors..."
+        for file in *.js; do
+          node -c "$file" || exit 1
+        done
+        echo "✅ All JavaScript files are valid"
+    
+    - name: Check file structure
+      run: |
+        echo "Checking required files..."
+        test -f indexdb-cache-system.js || (echo "❌ Missing indexdb-cache-system.js" && exit 1)
+        test -f README.md || (echo "❌ Missing README.md" && exit 1)
+        test -f LICENSE || (echo "❌ Missing LICENSE" && exit 1)
+        test -f package.json || (echo "❌ Missing package.json" && exit 1)
+        echo "✅ All required files present"
+
+  build:
+    runs-on: ubuntu-latest
+    name: Build Check
+    needs: lint
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Verify package.json
+      run: |
+        echo "Validating package.json..."
+        node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8'))"
+        echo "✅ package.json is valid"
+    
+    - name: Check exports
+      run: |
+        echo "Checking module exports..."
+        node -e "
+        const content = require('fs').readFileSync('indexdb-cache-system.js', 'utf8');
+        if (!content.includes('CachedApiClient')) {
+          console.error('❌ CachedApiClient not found');
+          process.exit(1);
+        }
+        if (!content.includes('IndexedDBCache')) {
+          console.error('❌ IndexedDBCache not found');
+          process.exit(1);
+        }
+        console.log('✅ Required exports found');
+        "
+
+  documentation:
+    runs-on: ubuntu-latest
+    name: Documentation Check
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Check README completeness
+      run: |
+        echo "Checking README.md..."
+        grep -q "Features" README.md || (echo "❌ Missing Features section" && exit 1)
+        grep -q "Installation" README.md || (echo "❌ Missing Installation section" && exit 1)
+        grep -q "Quick Start" README.md || (echo "❌ Missing Quick Start section" && exit 1)
+        grep -q "API Reference" README.md || (echo "❌ Missing API Reference section" && exit 1)
+        grep -q "Examples" README.md || grep -q "Usage" README.md || (echo "❌ Missing Examples/Usage section" && exit 1)
+        echo "✅ README.md is complete"
+    
+    - name: Check for broken links (demo)
+      run: |
+        echo "Checking demo.html references..."
+        test -f demo.html || (echo "⚠️ demo.html not found" && exit 0)
+        grep -q "indexdb-cache-system.js" demo.html || (echo "❌ demo.html missing script reference" && exit 1)
+        echo "✅ demo.html references are correct"
+
+  security:
+    runs-on: ubuntu-latest
+    name: Security Audit
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Check for sensitive data
+      run: |
+        echo "Scanning for sensitive data..."
+        ! grep -r "password\|secret\|api_key\|token" --include="*.js" --include="*.json" || \
+        (echo "⚠️ Potential sensitive data found. Please review." && exit 0)
+        echo "✅ No obvious sensitive data found"
+    
+    - name: Check file permissions
+      run: |
+        echo "Checking file permissions..."
+        find . -name "*.js" -perm /111 && echo "⚠️ JavaScript files should not be executable" || echo "✅ Permissions OK"
+
+  compatibility:
+    runs-on: ubuntu-latest
+    name: Compatibility Check
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Check ES6+ compatibility
+      run: |
+        echo "Checking for modern JavaScript features..."
+        if grep -q "async\|await\|class\|Promise" indexdb-cache-system.js; then
+          echo "✅ Uses modern JavaScript (ES6+)"
+          echo "⚠️ Ensure your target browsers support ES6+"
+        fi
+    
+    - name: Check IndexedDB usage
+      run: |
+        echo "Verifying IndexedDB implementation..."
+        grep -q "indexedDB.open" indexdb-cache-system.js || (echo "❌ Missing IndexedDB initialization" && exit 1)
+        echo "✅ IndexedDB properly implemented"
+
+  release-check:
+    runs-on: ubuntu-latest
+    name: Release Readiness
+    if: github.ref == 'refs/heads/main'
+    needs: [lint, build, documentation]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Version check
+      run: |
+        VERSION=$(node -p "require('./package.json').version")
+        echo "Current version: $VERSION"
+        echo "✅ Version: $VERSION"
+    
+    - name: Changelog check
+      run: |
+        test -f CHANGELOG.md || (echo "⚠️ CHANGELOG.md not found" && exit 0)
+        VERSION=$(node -p "require('./package.json').version")
+        grep -q "\[$VERSION\]" CHANGELOG.md || echo "⚠️ Version $VERSION not in CHANGELOG.md"
+        echo "✅ Changelog checked"

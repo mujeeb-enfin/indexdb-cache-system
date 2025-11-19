@@ -1,0 +1,51 @@
+{
+  "name": "indexdb-cache-system",
+  "version": "1.0.0",
+  "description": "Enterprise-grade IndexedDB API caching system with automatic expiry, smart invalidation, and request deduplication",
+  "main": "indexdb-cache-system.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mujeeb-enfin/indexdb-cache-system.git"
+  },
+  "keywords": [
+    "indexeddb",
+    "cache",
+    "caching",
+    "api",
+    "fetch",
+    "request",
+    "deduplication",
+    "ttl",
+    "expiry",
+    "invalidation",
+    "performance",
+    "offline",
+    "storage",
+    "browser"
+  ],
+  "author": {
+    "name": "Mujeeb Rahman",
+    "url": "https://github.com/mujeeb-enfin",
+    "organization": "MR-INNOVATIONS.COM"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mujeeb-enfin/indexdb-cache-system/issues"
+  },
+  "homepage": "https://github.com/mujeeb-enfin/indexdb-cache-system#readme",
+  "funding": {
+    "type": "individual",
+    "url": "https://mr-innovations.com"
+  },
+  "files": [
+    "indexdb-cache-system.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=12.0.0"
+  }
+}
