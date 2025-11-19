@@ -378,7 +378,7 @@ MR-INNOVATIONS.COM has developed several successful platforms:
 - **[360Classifieds.in](https://360classifieds.in)** - Comprehensive classifieds and ads platform
 - **[OneSync.in](https://onesync.in)** - All-in-one business solution (ERP)
 - **[PaymentHooks.com](https://paymenthooks.com)** - Subscription and billing platform (Chargebee alternative)
-- **[BloodRescuers.in](https://bloodrescuers.in)** - Blood donor connection platform
+- **[BloodRescuers.org](https://bloodrescuers.org)** - Blood donor connection platform
 
 > 💼 **Looking for custom software development?** Check out [MR-INNOVATIONS.COM](https://mr-innovations.com) for enterprise solutions.
 
