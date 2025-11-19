@@ -94,7 +94,8 @@ const apiClient = new CachedApiClient({
   version: 1,                     // Database version
   defaultTTL: 5 * 60 * 1000,     // Default cache TTL (5 minutes)
   maxEntries: 1000,               // Maximum cache entries
-  cleanupInterval: 60 * 1000      // Cleanup interval (1 minute)
+  cleanupInterval: 60 * 1000,     // Cleanup interval (1 minute)
+  persistentHeaderAllowList: []   // Headers allowed to be stored alongside cached data
 });
 ```
 
@@ -359,6 +360,7 @@ Check out the interactive demo at `demo.html` with:
 
 - ✅ Don't cache sensitive data with long TTL
 - ✅ Include auth tokens in cache keys via headers
+- ✅ Use `persistentHeaderAllowList` to explicitly opt-in headers you want stored
 - ✅ Always use `otherKeys` with `userId` for user-specific data
 - ✅ Use HTTPS APIs for secure data transmission
 

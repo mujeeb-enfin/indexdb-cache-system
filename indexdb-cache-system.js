@@ -13,12 +13,19 @@
 
 class IndexedDBCache {
   constructor(config = {}) {
+    if (typeof indexedDB === 'undefined') {
+      throw new Error('IndexedDB is not available in this environment.');
+    }
+    
     this.dbName = config.dbName || 'ApiCacheDB';
     this.storeName = config.storeName || 'apiCache';
     this.version = config.version || 1;
     this.defaultTTL = config.defaultTTL || 5 * 60 * 1000; // 5 minutes default
     this.maxEntries = config.maxEntries || 1000;
     this.cleanupInterval = config.cleanupInterval || 60 * 1000; // 1 minute
+    this.persistentHeaderAllowList = (config.persistentHeaderAllowList || []).map(header =>
+      header.toLowerCase()
+    );
     
     this.db = null;
     this.initPromise = null;
@@ -100,6 +107,23 @@ class IndexedDBCache {
   }
 
   /**
+   * Persist only whitelisted headers to IndexedDB
+   */
+  sanitizeHeaders(headers = {}, allowList = this.persistentHeaderAllowList) {
+    if (!Array.isArray(allowList) || allowList.length === 0) {
+      return {};
+    }
+    
+    const normalizedHeaders = this.normalizeHeaders(headers);
+    return allowList.reduce((result, header) => {
+      if (Object.prototype.hasOwnProperty.call(normalizedHeaders, header)) {
+        result[header] = normalizedHeaders[header];
+      }
+      return result;
+    }, {});
+  }
+
+  /**
    * Sort object keys for consistent hashing
    */
   sortObject(obj) {
@@ -177,13 +201,15 @@ class IndexedDBCache {
     try {
       await this.init();
       
-      const expiresAt = ttl ? Date.now() + ttl : Date.now() + this.defaultTTL;
+      const expiresAt = Date.now() + (ttl ?? this.defaultTTL);
+      const normalizedUrl = url.toLowerCase();
+      const sanitizedHeaders = this.sanitizeHeaders(headers);
       
       const cacheEntry = {
         cacheKey,
-        url,
+        url: normalizedUrl,
         method,
-        headers,
+        headers: sanitizedHeaders,
         otherKeys,
         data,
         createdAt: Date.now(),
@@ -254,7 +280,8 @@ class IndexedDBCache {
         const transaction = this.db.transaction([this.storeName], 'readwrite');
         const store = transaction.objectStore(this.storeName);
         const index = store.index('url');
-        const request = index.openCursor(IDBKeyRange.only(url.toLowerCase()));
+        const normalizedUrl = url.toLowerCase();
+        const request = index.openCursor(IDBKeyRange.only(normalizedUrl));
 
         const keysToDelete = [];
 
@@ -295,7 +322,11 @@ class IndexedDBCache {
    * Check if otherKeys match
    */
   matchesOtherKeys(cachedKeys, targetKeys) {
+    if (!cachedKeys) return false;
     for (const [key, value] of Object.entries(targetKeys)) {
+      if (!Object.prototype.hasOwnProperty.call(cachedKeys, key)) {
+        return false;
+      }
       if (JSON.stringify(cachedKeys[key]) !== JSON.stringify(value)) {
         return false;
       }
@@ -424,6 +455,10 @@ class IndexedDBCache {
       clearInterval(this.cleanupTimer);
     }
     
+    if (typeof setInterval === 'undefined') {
+      return;
+    }
+    
     this.cleanupTimer = setInterval(() => {
       this.cleanupExpired().catch(console.error);
     }, this.cleanupInterval);
@@ -525,6 +560,7 @@ class CachedApiClient {
 
     const normalizedMethod = method.toUpperCase();
     const cacheKey = this.cache.generateCacheKey(url, headers, otherKeys);
+    const normalizedBody = this.normalizeRequestBody(body);
 
     try {
       // For non-GET requests, invalidate related cache entries first
@@ -554,7 +590,7 @@ class CachedApiClient {
       const fetchPromise = this.performFetch(url, {
         method: normalizedMethod,
         headers,
-        body: body ? JSON.stringify(body) : null,
+        body: normalizedBody,
         ...fetchOptions
       });
 
@@ -565,10 +601,13 @@ class CachedApiClient {
 
       try {
         const response = await fetchPromise;
+        const shouldCache =
+          normalizedMethod === 'GET' &&
+          response.ok &&
+          this.shouldCacheResponse(response);
 
-        // Cache GET requests
-        if (normalizedMethod === 'GET' && response.ok) {
-          const data = await response.clone().json();
+        if (shouldCache) {
+          const data = await this.deserializeResponse(response);
           await this.cache.putIntoCache(
             cacheKey,
             url,
@@ -581,8 +620,8 @@ class CachedApiClient {
           return data;
         }
 
-        // For non-GET requests, just return the response
-        return response.ok ? await response.json() : response;
+        // For non-GET requests or uncached GETs, return parsed data when OK
+        return response.ok ? await this.deserializeResponse(response) : response;
 
       } finally {
         // Remove from pending requests
@@ -621,6 +660,106 @@ class CachedApiClient {
         await this.delay(Math.pow(2, i) * 1000);
       }
     }
+  }
+
+  /**
+   * Decide whether to persist a response in the cache
+   */
+  shouldCacheResponse(response) {
+    const cacheControl = response.headers.get('cache-control');
+    if (cacheControl) {
+      const normalized = cacheControl.toLowerCase();
+      if (
+        normalized.includes('no-store') ||
+        normalized.includes('private') ||
+        normalized.includes('no-cache')
+      ) {
+        return false;
+      }
+    }
+
+    const pragma = response.headers.get('pragma');
+    if (pragma && pragma.toLowerCase().includes('no-cache')) {
+      return false;
+    }
+
+    if (typeof response.headers.has === 'function' && response.headers.has('set-cookie')) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Deserialize responses based on their content type
+   */
+  async deserializeResponse(response) {
+    if (!response) return null;
+    if (response.status === 204 || response.status === 205) {
+      return null;
+    }
+
+    const contentLength = response.headers.get('content-length');
+    if (contentLength === '0' || response.body === null) {
+      return null;
+    }
+
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+
+    if (contentType.includes('json')) {
+      return await response.json();
+    }
+
+    if (contentType.startsWith('text/')) {
+      return await response.text();
+    }
+
+    try {
+      return await response.arrayBuffer();
+    } catch (error) {
+      console.warn('Falling back to text parsing for response', error);
+      return await response.text();
+    }
+  }
+
+  /**
+   * Normalize request bodies to avoid unwanted JSON serialization
+   */
+  normalizeRequestBody(body) {
+    if (body == null) {
+      return null;
+    }
+
+    if (typeof body === 'string') {
+      return body;
+    }
+
+    if (typeof FormData !== 'undefined' && body instanceof FormData) {
+      return body;
+    }
+
+    if (typeof Blob !== 'undefined' && body instanceof Blob) {
+      return body;
+    }
+
+    if (typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams) {
+      return body;
+    }
+
+    if (typeof ReadableStream !== 'undefined' && body instanceof ReadableStream) {
+      return body;
+    }
+
+    if (typeof ArrayBuffer !== 'undefined') {
+      if (body instanceof ArrayBuffer) {
+        return body;
+      }
+      if (typeof ArrayBuffer.isView === 'function' && ArrayBuffer.isView(body)) {
+        return body;
+      }
+    }
+
+    return JSON.stringify(body);
   }
 
   /**
